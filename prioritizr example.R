@@ -5,7 +5,20 @@ library(prioritizrdata)
 library(terra)
 
 # import planning unit data
-wa_pu <- get_wa_pu() #planning unit data
+wa_pu <- get_wa_pu() #planning unit data, this is of the class SpatRaster. holds gridded spatial (raster) data.
+##an aside - explore how to view data of the spatraster class
+wa_pu #shows spatial structure and metadata
+
+#show the raw values, with the coordinates
+df <- as.data.frame(wa_pu, xy = TRUE)
+head(df)
+
+#some individual calls for the metadata
+names(wa_pu) #gives layer names
+crs(wa_pu) #gives coordinate reference system
+ext(wa_pu) #gives spatial extent/bounding box
+res(wa_pu) #gives spatial resolution
+nlyr(wa_pu) #gives total number of layers
 
 # preview data
 print(wa_pu)
