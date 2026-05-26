@@ -110,4 +110,63 @@ imp_s1$rs[tas_pu$locked_in] <- -1
 # plot map of importance scores
 plot(st_as_sf(imp_s1[, "rs"]), main = "Overall importance")
 
-##stop at portfolios
+#portfolio fuctions help generate a rage of different prioritizations given the same problem formulation
+
+# create new problem with a portfolio added to it
+p2 <-
+  p1 %>%
+  add_shuffle_portfolio(number_solutions = 100, remove_duplicates = TRUE)
+
+# print problem
+print(p2)
+
+# generate prioritizations
+prt <- solve(p2)
+
+# see the solution
+print(prt)
+
+#visualize the difference between different prioritizations using hierarchical cluster analysis - groups simular data points into a heierarchical tree, like a tree of life, to see which solutions in this case are the most simular, and see groups of simular solutions
+# extract solutions
+prt_results <- sf::st_drop_geometry(prt)
+prt_results <- prt_results[, startsWith(names(prt_results), "solution_")]
+
+# calculate pair-wise distances between different prioritizations for analysis
+prt_dists <- vegan::vegdist(t(prt_results), method = "jaccard", binary = TRUE)
+
+# run cluster analysis
+prt_clust <- hclust(as.dist(prt_dists), method = "average")
+
+# visualize clusters
+opar <- par()
+par(oma = c(0, 0, 0, 0), mar = c(0, 4.1, 1.5, 2.1))
+plot(
+  prt_clust,
+  labels = FALSE,
+  sub = NA,
+  xlab = "",
+  main = "Different prioritizations in portfolio"
+)
+suppressWarnings(par(opar))
+
+#run another analysis, k-medoids analysis, which finds the most central, or most representitive prioritization from each of the 4 main groups
+# run k-medoids analysis
+prt_med <- pam(prt_dists, k = 4)
+
+# extract names of prioritizations that are most central for each group.
+prt_med_names <- prt_med$medoids
+print(prt_med_names)
+
+#now we visualize the 6 main solutions
+# create a copy of prt and set values for locked in planning units to -1
+# so we can easily visualize differences between prioritizations
+prt2 <- prt[, prt_med_names]
+prt2[which(tas_pu$locked_in > 0.5), prt_med_names] <- -1
+
+# plot a map showing main different prioritizations
+# dark grey: locked in planning units
+# grey: planning units not selected
+# green: selected planning units
+plot(st_as_sf(prt2), pal = c("grey60", "grey90", "darkgreen"))
+
+#skipping the marxam section because it might not be the most relavent for this internship
